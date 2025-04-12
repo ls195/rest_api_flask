@@ -7,7 +7,7 @@ api = Api(app)
 
 #PostgreSQL_Verbindung erstellen
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres_user:postgres_pw@192.168.178.52:5432/postgres'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres_nutzer:postgres_pw@host:port/db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
 
 db = SQLAlchemy(app)
