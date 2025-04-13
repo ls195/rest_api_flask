@@ -5,14 +5,11 @@ from flask_sqlalchemy import SQLAlchemy
 app = Flask(__name__)
 api = Api(app)
 
-#PostgreSQL_Verbindung erstellen
-
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres_nutzer:postgres_pw@host:port/db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
 
 db = SQLAlchemy(app)
 
-#Model definieren
 class kunde(db.Model):
     kd_nr=db.Column(db.Integer, primary_key=True)
     vorname=db.Column(db.String(50))
