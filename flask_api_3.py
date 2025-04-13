@@ -10,14 +10,14 @@ api = Api(app)
 
 #PostgreSQL_Verbindung erstellen
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres_user:postgres_pw@192.168.178.52:5432/postgres'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres_nutzer:postgres_pw@host:port/db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
 
 #JWT implementation:
 #Wir bilden einen Login-Prozess nach: 1. muss die seite /login besucht werden, damit ein JWT erstellt wird
 #2. können Seiten wie /kunden besucht werden, da ein JWT existiert. 
 #3. vorher sollte das nicht möglich sein
-app.config['JWT_SECRET_KEY'] ='super_duper_secret'
+app.config['JWT_SECRET_KEY'] ='supe_secret'
 jwt = JWTManager(app)
 
 @app.route("/login", methods=['POST'])
