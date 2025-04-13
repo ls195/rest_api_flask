@@ -8,15 +8,8 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 app = Flask(__name__)
 api = Api(app)
 
-#PostgreSQL_Verbindung erstellen
-
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres_nutzer:postgres_pw@host:port/db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
-
-#JWT implementation:
-#Wir bilden einen Login-Prozess nach: 1. muss die seite /login besucht werden, damit ein JWT erstellt wird
-#2. können Seiten wie /kunden besucht werden, da ein JWT existiert. 
-#3. vorher sollte das nicht möglich sein
 app.config['JWT_SECRET_KEY'] ='supe_secret'
 jwt = JWTManager(app)
 
@@ -32,7 +25,6 @@ def login():
 
 db = SQLAlchemy(app)
 
-#Model definieren
 class kunde(db.Model):
     kd_nr=db.Column(db.Integer, primary_key=True)
     vorname=db.Column(db.String(50))
