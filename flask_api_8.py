@@ -13,7 +13,7 @@ app = Flask(__name__)
 api = Api(app)
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres_user:postgres_pw@192.168.178.52:5432/postgres'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres_nutzer:postgres_pw@host:port/db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
 app.config['JWT_SECRET_KEY'] ='super_duper_secret'
 
@@ -24,7 +24,7 @@ cache = Cache(app)
 
 jwt = JWTManager(app)
 
-@app.route("/login", methods=['POST'])              ##JWT Initialisierung über /login
+@app.route("/login", methods=['POST'])              ##JWT Initialisierung über /login --> zuerst muss man über Login den Token generieren
 def login():
     username = request.json.get('username', None)
     password = request.json.get('password', None)
@@ -33,7 +33,7 @@ def login():
     access_token = create_access_token(identity = username)
     return jsonify(access_token=access_token) 
 
-#Hier wird die Datenbank anhand der Model-Klassen definiert
+#Hier wird die Datenbank anhand der Model-Klassen definiert ---> ORM
 db = SQLAlchemy(app)
 
 #Model definieren
@@ -61,10 +61,8 @@ class Auftrag(db.Model):
     zahlungsziel:Mapped[date]
     zahlungseingang:Mapped[date]
     mahnung:Mapped[int]
-    fk_kunde:Mapped[int]=mapped_column(ForeignKey("kunde.kd_nr"))                   #Foreign key auf kunde.kd_nr  
-    fk_shop:Mapped[int]=mapped_column(ForeignKey("shop.shop_nr"))                   #Foreign key auf shop.shop_nr
-    
-
+    fk_kunde:Mapped[int]=mapped_column(ForeignKey("kunde.kd_nr"))                     
+    fk_shop:Mapped[int]=mapped_column(ForeignKey("shop.shop_nr"))                   
 
 class Bestellposition(db.Model):
     __tableame__='bestellposition'
@@ -109,7 +107,7 @@ class Shop(db.Model):
 
 #Initialisierung des Services
 
-class Kunde_list(Resource):
+class Kunde_list(Resource):        #Liste aller Kunden generieren
     @cache.cached(timeout=60)      #routenspezifisches Caching --> Erneuerung des Cache alle 60 Sekunden
 #    @jwt_required()
     def get(self):                              #Service Initialisierung   
@@ -123,23 +121,15 @@ class Kunde_list(Resource):
     
 
 
-#service_a: 
-#Neuen Kunden anlegen. 
-#Auftrag erstellen. 
-#Bestellpositionen hinzufügen von 
-#vorhandenen Artikeln mit 
-#vorhandenen Herstellern.
-
-
-class Kunde_add(Resource):  
-    #@cache.cached(timeout=60)
+class Kunde_add(Resource):              #Kunde hinzufügen
+    #@cache.cached(timeout=60)            #Cache und JWT auskommentiert zum testen
     #@jwt_required()
     
     def post(self):
-        data=request.get_json()     #hier wird die gesamte im URL-Body mitgeteilte JSOn entgegengenommen
-                                            #Welche Daten benötigt die Datenbank für einen vollständigen Eintrag ? --> Wie soll die JSON-Datenstruktur aussehen ? 
-        neue_kd_nr=db.session.query(func.max(Kunde.kd_nr)).scalar()+1 
-        letzter_zugriff_aktuell=datetime.utcnow().isoformat()
+        data=request.get_json()     #hier wird die gesamte im URL-Body mitgeteilte JSON entgegengenommen
+                        
+        neue_kd_nr=db.session.query(func.max(Kunde.kd_nr)).scalar()+1    #neue KD-Nr wird generiert
+        letzter_zugriff_aktuell=datetime.utcnow().isoformat()            #letzter Zugriff wird generiert
       
         kunde_neu=Kunde(
                 kd_nr=neue_kd_nr,
@@ -154,40 +144,33 @@ class Kunde_add(Resource):
                 ledig=data['ledig'],
                 rabatt=data['rabatt'],
                 letzter_zugriff=letzter_zugriff_aktuell)
-        db.session.add(kunde_neu)
-        db.session.commit()
+        db.session.add(kunde_neu)                                           #Insert-Statement wird der Session hinzugefügt
+        db.session.commit()                                                 #Session wird commited
         print(f"Kunde -{neue_kd_nr}- angelegt")
         return {"message": "Alles erstellt."}, 201
 
-class Service_A(Resource):          #Was hier noch fehlt, ist: 
-                                    #Eine Überprüfung, ob der Käufer bereits existiert. 
-                                    #                   --> Wenn nicht, dann neu anlegen
-                                    #                   --> Wenn ja, dann artikel etc. zu einem bekannten Kunden hinzufügen
-                                    #Eine Überprüfung, ob der Artikel in der Menge auf Lager ist,       --> es gibt garkeine Lager-bestands-Anzahl
-                                    #                   --> Wenn ja, dann Artikel aus Lager nehmen-
-                                    #                   --> Wenn nein, Bestellung stornieren
-                                    #
+class Service_A(Resource):          
+    #Aus irgendeinem Shop geht eine Bestellung ein. 
+    #    1. Überprüfung, ob der Kunde bereits existiert. 
+    #    2. ggf. Kunden anlegen. Auf jeden Fall: Auftrag und Bestellungen anpassen
     def post(self):
 
         data=request.get_json()                 #daten aus JSON-Body auslesen
         
-        
         neue_kd_nr=db.session.query(func.max(Kunde.kd_nr)).scalar()+1               #neue kd_nr -> 1 höher als die aktuell höchste
         neue_auft_nr=db.session.query(func.max(Auftrag.auft_nr)).scalar()+1         #neue auft_nr -> 1 höher als die aktuell höchste
         aktuelle_zeit=datetime.utcnow().isoformat()                                 #aktuelle_zeit
-        aktuelles_datum=date.today()
+        aktuelles_datum=date.today()                                                #aktuelles_datum
        
-        kunde_data=data.get("kunde")
+        kunde_data=data.get("kunde")                                                #data wird objekt-bezogen ausgelesen 
         auftrag_data=data.get("auftrag")
         bestellpositionen_data=data.get("bestellpositionen")
         
         #Folgendes ist für die Prüfung, ob ein Kunde mit gleichem vor-, nachnamen sowie geburtsdatum existiert.
         kunde_exist=db.session.query(Kunde).filter((Kunde.vorname==kunde_data['vorname']) & (Kunde.nachname==kunde_data['nachname']) & (Kunde.geburtsdatum==kunde_data['geburtsdatum']))  #Statement zur Überprüfung, ob vorname existiert
-        k_exist=db.session.query(kunde_exist.exists()).scalar() #hier werden drei unterabfragen abgrafragt. Sollte in allen reihen etwas gefunden wrden, so wird mittels scalar() True zurückgegeben
-
-        #Der Auftrag wird erstellt und einer neuen kd_nr zugewiesen- Was falsch ist. 
+        k_exist=db.session.query(kunde_exist.exists()).scalar() #hier werden drei unterabfragen abgrafragt. Sollte in allen reihen etwas gefunden wrden, so wird mittels scalar() als True zurückgegeben
         kd_nr_aktu=db.session.query(Kunde.kd_nr).filter((Kunde.vorname==kunde_data['vorname']) & (Kunde.nachname==kunde_data['nachname']) &(Kunde.geburtsdatum==kunde_data['geburtsdatum'])).scalar()
-        
+        #aktuelle KD-NR des existierenden Kunden mit vorname, nachname und geburtsdatum
         if k_exist:         #==True
             print(f"Kunde with {kunde_data['vorname']}, {kunde_data['nachname']}, born in {kunde_data['geburtsdatum']} DOES already EXIST with kd_nr: {kd_nr_aktu}.")
             auftrag_neu=Auftrag(
@@ -271,10 +254,10 @@ class Get_max_kd_nr(Resource):
 
 
 
-api.add_resource(Kunde_list, '/api/kunden/list')         #gibt auskunft über alle Kunden {"kd_nr": XYZ, "vorname": "Maximilian"}
+api.add_resource(Kunde_list, '/api/kunden/list')                 #gibt auskunft über alle Kunden {"kd_nr": XYZ, "vorname": "Maximilian"}
 api.add_resource(Get_max_kd_nr, '/api/kunden/get_max_kd_nr')
 api.add_resource(Kunde_add, '/api/kunden/add')
-api.add_resource(Service_A, '/api/service/A')
+api.add_resource(Service_A, '/api/service/A')                    #eigentliche Service-Abfrage
 
 if __name__== '__main__':
     app.run(debug=True)
