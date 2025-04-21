@@ -13,7 +13,7 @@ app = Flask(__name__)
 api = Api(app)
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres_user:postgres_pw@192.168.178.52:5432/postgres'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres_nutzer:postgres_pw@host:port/db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
 app.config['JWT_SECRET_KEY'] ='super_duper_secret'
 
@@ -120,15 +120,7 @@ class Kunde_list(Resource):
         #eigentlicher Service startet hier
         kunden=Kunde.query.all() 
         return [{'kd_nr':kunde.kd_nr, 'vorname':kunde.vorname}for kunde in kunden]
-    
 
-
-#service_a: 
-#Neuen Kunden anlegen. 
-#Auftrag erstellen. 
-#Bestellpositionen hinzufügen von 
-#vorhandenen Artikeln mit 
-#vorhandenen Herstellern.
 
 
 class Kunde_add(Resource):  
@@ -170,14 +162,7 @@ class Get_max_kd_nr(Resource):                                          #Service
 
                                                                 #SERVICE_A
 
-class Service_A(Resource):          #Was hier noch fehlt, ist: 
-                                    #Eine Überprüfung, ob der Käufer bereits existiert. 
-                                    #                   --> Wenn nicht, dann neu anlegen
-                                    #                   --> Wenn ja, dann artikel etc. zu einem bekannten Kunden hinzufügen
-                                    #Eine Überprüfung, ob der Artikel in der Menge auf Lager ist,       --> es gibt garkeine Lager-bestands-Anzahl
-                                    #                   --> Wenn ja, dann Artikel aus Lager nehmen-
-                                    #                   --> Wenn nein, Bestellung stornieren
-                                    #
+class Service_A(Resource):         
     def post(self):
 
         data=request.get_json()                 #daten aus JSON-Body auslesen
